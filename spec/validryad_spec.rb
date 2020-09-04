@@ -15,44 +15,6 @@ RSpec.describe Validryad::Contract do
   C = Validryad::Contract
   ITSELF = :itself.to_proc
 
-  describe :present do
-    where :case_name, :value, :success?, :result_contents do
-      'one'   | 1     | true  | 1
-      'zero'  | 0     | true  | 0
-      'false' | false | true  | false
-      'nil'   | nil   | false | [[:absent, []]]
-    end
-
-    with_them do
-      subject { C.present.call value, [], value }
-
-      it('has the expected result type') { expect(subject.success?).to eq success? }
-
-      it 'has the expected result content' do
-        expect(subject.either(ITSELF, ITSELF)).to eq result_contents
-      end
-    end
-  end
-
-  describe :absent do
-    where :case_name, :value, :success?, :result_contents do
-      'one'   | 1     | false | [[:present, []]]
-      'zero'  | 0     | false | [[:present, []]]
-      'false' | false | false | [[:present, []]]
-      'nil'   | nil   | true  | nil
-    end
-
-    with_them do
-      subject { C.absent.call value, [], value }
-
-      it('has the expected result type') { expect(subject.success?).to eq success? }
-
-      it 'has the expected result content' do
-        expect(subject.either(ITSELF, ITSELF)).to eq result_contents
-      end
-    end
-  end
-
   describe :typed do
     context 'when the type is strict' do
       let(:type) { T::Strict::Integer }
@@ -466,23 +428,23 @@ RSpec.describe Validryad::Contract do
   end
 
   describe 'prefab predicates' do
-    where :case_name, :predicate,   :value, :success?, :result_contents do
-      'present: nil'              | C.present         | nil   | false | [[:absent, []]]
-      'present: not nil'          | C.present         | 1     | true  | 1
-      'absent: not nil'           | C.absent          | 1     | false | [[:present, []]]
-      'absent: nil'               | C.absent          | nil   | true  | nil
-      'gt: < min'                 | C.gt(10)          | 9     | false | [[[:not_gt, 10], []]]
-      'gt: = min'                 | C.gt(10)          | 10    | false | [[[:not_gt, 10], []]]
-      'gt: > min'                 | C.gt(10)          | 11    | true  | 11
-      'gteq: < min'               | C.gteq(10)        | 9     | false | [[[:not_gteq, 10], []]]
-      'gteq: = min'               | C.gteq(10)        | 10    | true  | 10
-      'gteq: > min'               | C.gteq(10)        | 11    | true  | 11
-      'lt: < max'                 | C.lt(10)          | 9     | true  | 9
-      'lt: = max'                 | C.lt(10)          | 10    | false | [[[:not_lt, 10], []]]
-      'lt: > max'                 | C.lt(10)          | 11    | false | [[[:not_lt, 10], []]]
-      'lteq: < max'               | C.lteq(10)        | 9     | true  | 9
-      'lteq: = max'               | C.lteq(10)        | 10    | true  | 10
-      'lteq: > max'               | C.lteq(10)        | 11    | false | [[[:not_lteq, 10], []]]
+    where :case_name,             :predicate,              :value, :success?, :result_contents do
+      'present: nil'              | C.present              | nil   | false | [[:absent, []]]
+      'present: not nil'          | C.present              | 1     | true  | 1
+      'absent: not nil'           | C.absent               | 1     | false | [[:present, []]]
+      'absent: nil'               | C.absent               | nil   | true  | nil
+      'gt: < min'                 | C.gt(10)               | 9     | false | [[[:not_gt, 10], []]]
+      'gt: = min'                 | C.gt(10)               | 10    | false | [[[:not_gt, 10], []]]
+      'gt: > min'                 | C.gt(10)               | 11    | true  | 11
+      'gteq: < min'               | C.gteq(10)             | 9     | false | [[[:not_gteq, 10], []]]
+      'gteq: = min'               | C.gteq(10)             | 10    | true  | 10
+      'gteq: > min'               | C.gteq(10)             | 11    | true  | 11
+      'lt: < max'                 | C.lt(10)               | 9     | true  | 9
+      'lt: = max'                 | C.lt(10)               | 10    | false | [[[:not_lt, 10], []]]
+      'lt: > max'                 | C.lt(10)               | 11    | false | [[[:not_lt, 10], []]]
+      'lteq: < max'               | C.lteq(10)             | 9     | true  | 9
+      'lteq: = max'               | C.lteq(10)             | 10    | true  | 10
+      'lteq: > max'               | C.lteq(10)             | 11    | false | [[[:not_lteq, 10], []]]
       'eq: != val'                | C.eq(10)               | 9     | false | [[[:not_eq, 10], []]]
       'eq: = val'                 | C.eq(10)               | 10    | true  | 10
       'neq: = val'                | C.neq(10)              | 10    | false | [[[:eq, 10], []]]
