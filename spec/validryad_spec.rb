@@ -408,7 +408,7 @@ RSpec.describe Validryad::Contract do
       '2-arity false' | -> { _1.odd? && _2.include?(:htap) }                   | false
       '2-arity true'  | -> { _1.odd? && _2.include?(:path) }                   | true
       '3-arity false' | -> { _1.odd? && _2.include?(:path) && _3.key?(:htap) } | false
-      '3-arity false' | -> { _1.odd? && _2.include?(:path) && _3.key?(:path) } | true
+      '3-arity true'  | -> { _1.odd? && _2.include?(:path) && _3.key?(:path) } | true
     end
 
     with_them do
@@ -423,7 +423,9 @@ RSpec.describe Validryad::Contract do
     end
 
     it 'rejects blocks of arity > 3' do
-      expect { C.rule(error: 0) { |_a, _b, _c, _d| true }.call true, [], true }.to raise_error
+      expect { C.rule(error: 0) { |_a, _b, _c, _d| true }.call true, [], true }.to(
+        raise_error(Validryad::Error)
+      )
     end
   end
 
