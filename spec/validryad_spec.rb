@@ -164,7 +164,7 @@ RSpec.describe Validryad::Contract do
     end
 
     context 'when only full validator supplied' do
-      where :case_name, :value, :success?, :result_contents do
+      where :case_name, :value,   :success?, :result_contents do
         'non-array'    | 4         | false | [[[:expected_type, 'Array'], []]]
         'invalid full' | [1, 2]    | false | [[:too_small, []]]
         'valid full'   | [1, 2, 3] | true  | [1, 2, 3]
@@ -182,14 +182,14 @@ RSpec.describe Validryad::Contract do
     end
 
     context 'when only element validator supplied' do
-      where :case_name,    :value,          :path,         :success?, :result_contents do
-        'non-array'        | 4              | []           | false   | [[[:expected_type, 'Array'], []]]
-        'invalid element'  | [3, 4, 2, 5]   | []           | false   | [[[:not_gt, 2], [2]]]
-        'invalid elements' | [0, '1', 4, 2] | []           | false   | [[[:not_gt, 2], [0]],
-                                                                        [[:expected_type, 'Integer'], [1]],
-                                                                        [[:not_gt, 2], [3]]]
-        'append path'      | [3, 2, 4]      | %i[old path] | false   | [[[:not_gt, 2], [:old, :path, 1]]]
-        'valid elements'   | [6, 4, 5, 3]   | []           | true    | [6, 4, 5, 3]
+      where :case_name,    :value,          :path,        :success?, :result_contents do
+        'non-array'        | 4              | []           | false | [[[:expected_type, 'Array'], []]]
+        'invalid element'  | [3, 4, 2, 5]   | []           | false | [[[:not_gt, 2], [2]]]
+        'invalid elements' | [0, '1', 4, 2] | []           | false | [[[:not_gt, 2], [0]],
+                                                                      [[:expected_type, 'Integer'], [1]],
+                                                                      [[:not_gt, 2], [3]]]
+        'append path'      | [3, 2, 4]      | %i[old path] | false | [[[:not_gt, 2], [:old, :path, 1]]]
+        'valid elements'   | [6, 4, 5, 3]   | []           | true  | [6, 4, 5, 3]
       end
 
       with_them do
@@ -204,7 +204,7 @@ RSpec.describe Validryad::Contract do
     end
 
     context 'when full and element validators are supplied' do
-      where :case_name,    :value,     :success?, :result_contents do
+      where :case_name,    :value,    :success?, :result_contents do
         'non-array'        | 1         | false | [[[:expected_type, 'Array'], []]]
         'invalid full'     | [1, 2]    | false | [[:too_small, []]]
         'invalid elements' | [3, 4, 2] | false | [[[:not_gt, 2], [2]]]
@@ -247,7 +247,7 @@ RSpec.describe Validryad::Contract do
     end
 
     context 'when only full validator supplied' do
-      where :case_name, :value, :success?, :result_contents do
+      where :case_name, :value,              :success?, :result_contents do
         'non-hash'     | 4                    | false | [[[:expected_type, 'Hash'], []]]
         'failing full' | { a: 1, b: 2 }       | false | [[:too_small, []]]
         'passing full' | { a: 1, b: 2, c: 3 } | true  | { a: 1, b: 2, c: 3 }
@@ -265,7 +265,7 @@ RSpec.describe Validryad::Contract do
     end
 
     context 'when only mandatory key validators supplied' do
-      where :case_name, :value,              :path,   :success?, :result_contents do
+      where :case_name, :value,              :path,  :success?, :result_contents do
         'non-hash'    | 4                    | []     | false | [[[:expected_type, 'Hash'], []]]
         'empty hash'  | {}                   | []     | false | [[[:missing_key, :a], []], [[:missing_key, :b], []]]
         'missing key' | { b: 2 }             | []     | false | [[[:missing_key, :a], []]]
@@ -287,7 +287,7 @@ RSpec.describe Validryad::Contract do
     end
 
     context 'when only optional key validators supplied' do
-      where :case_name, :value, :path, :success?, :result_contents do
+      where :case_name, :value,        :path,  :success?, :result_contents do
         'non-hash'    | 4              | []     | false | [[[:expected_type, 'Hash'], []]]
         'invalid key' | { a: 2 }       | []     | false | [[[:not_eq, 1], [:a]]]
         'append path' | { a: 2 }       | [1, 2] | false | [[[:not_eq, 1], [1, 2, :a]]]
@@ -308,7 +308,7 @@ RSpec.describe Validryad::Contract do
     end
 
     context 'when all validators supplied' do
-      where :case_name,     :value,                :path,   :success?, :result_contents do
+      where :case_name,     :value,                :path,  :success?, :result_contents do
         'non-hash'          | 4                    | []     | false | [[[:expected_type, 'Hash'], []]]
         'invalid full'      | { a: 1 }             | []     | false | [[:too_small, []]]
         'invalid mandatory' | { a: 2, c: 3 }       | []     | false | [[[:not_eq, 1], [:a]]]
@@ -367,10 +367,10 @@ RSpec.describe Validryad::Contract do
 
   describe :and do
     where :case_name, :value, :success?, :result_contents do
-      'invalid left'  | 11 | false | [[:not_even, []]]
-      'invalid right' | 6  | false | [[[:not_gt, 10], []]]
-      'invalid both'  | 7  | false | [[:not_even, []], [[:not_gt, 10], []]]
-      'valid both'    | 12 | true  | 12
+      'left invalid'  | 11 | false | [[:not_even, []]]
+      'right invalid' | 6  | false | [[[:not_gt, 10], []]]
+      'both invalid'  | 7  | false | [[:not_even, []], [[:not_gt, 10], []]]
+      'both valid'    | 12 | true  | 12
     end
 
     with_them do
@@ -398,10 +398,10 @@ RSpec.describe Validryad::Contract do
 
   describe :then do
     where :case_name, :value, :success?, :result_contents do
-      'invalid left'  | 11   | false | [[:not_even, []]]
-      'invalid right' | 6    | false | [[[:not_gt, 10], []]]
-      'invalid both'  | 7    | false | [[:not_even, []]]
-      'valid both'    | 12   | true  | 12
+      'left invalid'  | 11   | false | [[:not_even, []]]
+      'right invalid' | 6    | false | [[[:not_gt, 10], []]]
+      'both invalid'  | 7    | false | [[:not_even, []]]
+      'both valid'    | 12   | true  | 12
     end
 
     with_them do
