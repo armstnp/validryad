@@ -36,8 +36,11 @@ module Validryad
     # validators against those keys
     # @param [Hash<Object, #call(val, path, context)>] optional: A map of optional keys to
     # validators against those keys
-    def hash(full: Pass.instance, mandatory: {}, optional: {})
-      HashV.new full: full, mandatory: mandatory, optional: optional
+    # @param [:keep|:trim|:reject] other_keys: A mode switch that determines whether unspecified
+    # keys are kept without validation (+:keep+), trimmed away from the returned value (+:trim+), or
+    # rejected with a failure (+:reject+).
+    def hash(full: Pass.instance, mandatory: {}, optional: {}, other_keys: :keep)
+      HashV.new full: full, mandatory: mandatory, optional: optional, other_keys: other_keys
     end
 
     # Validate a value is a fixed-size tuple.

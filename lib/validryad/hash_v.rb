@@ -9,10 +9,19 @@ module Validryad
     include Combinators
     include Dry::Monads[:result, :do]
 
-    def initialize(full: Pass.instance, mandatory: {}, optional: {})
-      @full_validator = full
-      @key_validators = mandatory.merge optional
-      @mandatory_keys = mandatory.keys
+    OTHER_KEY_HANDLERS = {
+      keep:   ->(k, v, _path) { [k, Dry::Monads.Success(v)] },
+      trim:   ->(_k, _v, _path) { nil },
+      reject: ->(k, _v, path) { [k, Dry::Monads.Failure([[[:invalid_key, k], path]])] }
+    }.freeze
+
+    def initialize(full: Pass.instance, mandatory: {}, optional: {}, other_keys: :keep)
+      @full_validator    = full
+      @key_validators    = mandatory.merge optional
+      @mandatory_keys    = mandatory.keys
+      @other_key_handler = OTHER_KEY_HANDLERS[other_keys]
+
+      raise Validryad::Error, "Invalid other-key handler #{other_keys}" unless other_key_handler
     end
 
     def call(value, path, context)
@@ -35,8 +44,12 @@ module Validryad
 
     def validate_elements(value, path, context)
       value.map do |key, val|
-        validated_key?(key) ? validate_kv(key, val, path, context) : [key, Success(val)]
-      end
+        if validated_key? key
+          validate_kv key, val, path, context
+        else
+          other_key_handler.call key, val, path
+        end
+      end.compact
     end
 
     def validated_key?(key)
@@ -70,6 +83,6 @@ module Validryad
       Success(results.map { |(k, v)| [k, v.value!] }.to_h)
     end
 
-    attr_reader :full_validator, :key_validators, :mandatory_keys
+    attr_reader :full_validator, :key_validators, :mandatory_keys, :other_key_handler
   end
 end
