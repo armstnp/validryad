@@ -335,6 +335,34 @@ RSpec.describe Validryad::Contract do
         end
       end
     end
+
+    context 'when valid other-key mode is specified' do
+      where :case_name, :other_key_mode, :success?, :result_contents do
+        'keep'         | :keep    | true  | { a: 1, b: 2, c: 3 }
+        'trim'         | :trim    | true  | { a: 1, b: 2 }
+        'reject'       | :reject  | false | [[[:invalid_key, :c], []]]
+      end
+
+      with_them do
+        subject do
+          C.hash(
+            mandatory:  { a: C.eq(1) },
+            optional:   { b: C.eq(2) },
+            other_keys: other_key_mode
+          ).call({ a: 1, b: 2, c: 3 }, [], { a: 1, b: 2, c: 3 })
+        end
+
+        it('has the expected result type') { expect(subject.success?).to eq success? }
+
+        it 'has the expected result content' do
+          expect(subject.either(ITSELF, ITSELF)).to eq result_contents
+        end
+      end
+    end
+
+    it 'rejects invalid other-key modes' do
+      expect { C.hash(other_keys: :invalid) }.to raise_error(Validryad::Error)
+    end
   end
 
   describe :and do
