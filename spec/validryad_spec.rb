@@ -253,24 +253,6 @@ RSpec.describe Validryad::Contract do
       end
     end
 
-    context 'when only full validator supplied' do
-      where :case_name, :value,              :success?, :result_contents do
-        'non-hash'     | 4                    | false | [[[:expected_type, 'Hash'], []]]
-        'failing full' | { a: 1, b: 2 }       | false | [[:too_small, []]]
-        'passing full' | { a: 1, b: 2, c: 3 } | true  | { a: 1, b: 2, c: 3 }
-      end
-
-      with_them do
-        subject { C.hash(full: C.rule(error: :too_small) { _1.count >= 3 }).call value, [], value }
-
-        it('has the expected result type') { expect(subject.success?).to eq success? }
-
-        it 'has the expected result content' do
-          expect(subject.either(ITSELF, ITSELF)).to eq result_contents
-        end
-      end
-    end
-
     context 'when only mandatory key validators supplied' do
       where :case_name, :value,              :path,  :success?, :result_contents do
         'non-hash'    | 4                    | []     | false | [[[:expected_type, 'Hash'], []]]
@@ -314,13 +296,60 @@ RSpec.describe Validryad::Contract do
       end
     end
 
+    context 'when only before validator supplied' do
+      where :case_name, :value, :success?, :result_contents do
+        'non-hash'       | 4        | false | [[[:expected_type, 'Hash'], []]]
+        'failing before' | { a: 2 } | false | [[:invalid_a, []]]
+        'passing before' | { a: 1 } | true  | { a: '1' }
+      end
+
+      with_them do
+        subject do
+          C.hash(
+            before:    C.rule(error: :invalid_a) { _1[:a] == 1 },
+            mandatory: { a: C.typed(T::Coercible::String) }
+          ).call value, [], value
+        end
+
+        it('has the expected result type') { expect(subject.success?).to eq success? }
+
+        it 'has the expected result content' do
+          expect(subject.either(ITSELF, ITSELF)).to eq result_contents
+        end
+      end
+    end
+
+    context 'when only after validator supplied' do
+      where :case_name, :value,   :success?, :result_contents do
+        'non-hash'      | 4        | false | [[[:expected_type, 'Hash'], []]]
+        'failing after' | { a: 2 } | false | [[:invalid_a, []]]
+        'passing after' | { a: 1 } | true  | { a: '1' }
+      end
+
+      with_them do
+        subject do
+          C.hash(
+            mandatory: { a: C.typed(T::Coercible::String) },
+            after:     C.rule(error: :invalid_a) { _1[:a] == '1' }
+          ).call value, [], value
+        end
+
+        it('has the expected result type') { expect(subject.success?).to eq success? }
+
+        it 'has the expected result content' do
+          expect(subject.either(ITSELF, ITSELF)).to eq result_contents
+        end
+      end
+    end
+
     context 'when all validators supplied' do
       where :case_name,     :value,                :path,  :success?, :result_contents do
         'non-hash'          | 4                    | []     | false | [[[:expected_type, 'Hash'], []]]
-        'invalid full'      | { a: 1 }             | []     | false | [[:too_small, []]]
-        'invalid mandatory' | { a: 2, c: 3 }       | []     | false | [[[:not_eq, 1], [:a]]]
-        'invalid optional'  | { a: 1, b: 1 }       | []     | false | [[[:not_eq, 2], [:b]]]
-        'append path'       | { a: 2, c: 3 }       | [1, 2] | false | [[[:not_eq, 1], [1, 2, :a]]]
+        'invalid before'    | { a: 2 }             | []     | false | [[:invalid_before, []]]
+        'invalid mandatory' | { a: 1.0, c: 3 }     | []     | false | [[[:expected_type, 'BigDecimal'], [:a]]]
+        'invalid optional'  | { a: 1, b: 2.0 }     | []     | false | [[[:expected_type, 'BigDecimal'], [:b]]]
+        'invalid after'     | { a: 1, b: 1 }       | []     | false | [[:invalid_after, []]]
+        'append path'       | { a: 1.0, c: 3 }     | [1, 2] | false | [[[:expected_type, 'BigDecimal'], [1, 2, :a]]]
         'valid mand+extra'  | { a: 1, c: 3 }       | []     | true  | { a: 1, c: 3 }
         'valid mand+opt'    | { a: 1, b: 2 }       | []     | true  | { a: 1, b: 2 }
         'extra key'         | { a: 1, b: 2, c: 3 } | []     | true  | { a: 1, b: 2, c: 3 }
@@ -329,9 +358,10 @@ RSpec.describe Validryad::Contract do
       with_them do
         subject do
           C.hash(
-            full:      C.rule(error: :too_small) { _1.count >= 2 },
-            mandatory: { a: C.eq(1) },
-            optional:  { b: C.eq(2) }
+            before:    C.rule(error: :invalid_before) { _1[:a] == 1 },
+            mandatory: { a: C.typed(T::Coercible::Decimal) },
+            optional:  { b: C.typed(T::Coercible::Decimal) },
+            after:     C.rule(error: :invalid_after) { !_1.key?(:b) || _1[:b] == BigDecimal(2) }
           ).call value, path, value
         end
 
