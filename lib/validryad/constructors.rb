@@ -22,11 +22,13 @@ module Validryad
     end
 
     # Validate a value is a homogeneous array.
-    # @param [#call(val, path, context)] full: A validator to apply to the array as a whole (e.g.
-    # count)
+    # @param [#call(val, path, context)] before: A validator to apply to the array as a whole (e.g.
+    # count) before the element validator +each+
     # @param [#call(val, path, context)] each: A validator to apply to each element of the array
-    def array(full: Pass.instance, each: Pass.instance)
-      ArrayV.new full: full, each: each
+    # @param [#call(val, path, context)] after: A validator to apply to the array as a whole (e.g.
+    # count) after the element validator +each+
+    def array(before: Pass.instance, each: Pass.instance, after: Pass.instance)
+      ArrayV.new before: before, each: each, after: after
     end
 
     # Validate a value is a hash with specified keys.
