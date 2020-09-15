@@ -163,24 +163,6 @@ RSpec.describe Validryad::Contract do
       end
     end
 
-    context 'when only full validator supplied' do
-      where :case_name, :value,   :success?, :result_contents do
-        'non-array'    | 4         | false | [[[:expected_type, 'Array'], []]]
-        'invalid full' | [1, 2]    | false | [[:too_small, []]]
-        'valid full'   | [1, 2, 3] | true  | [1, 2, 3]
-      end
-
-      with_them do
-        subject { C.array(full: C.rule(error: :too_small) { _1.count >= 3 }).call value, [], value }
-
-        it('has the expected result type') { expect(subject.success?).to eq success? }
-
-        it 'has the expected result content' do
-          expect(subject.either(ITSELF, ITSELF)).to eq result_contents
-        end
-      end
-    end
-
     context 'when only element validator supplied' do
       where :case_name,    :value,          :path,        :success?, :result_contents do
         'non-array'        | 4              | []           | false | [[[:expected_type, 'Array'], []]]
@@ -203,19 +185,44 @@ RSpec.describe Validryad::Contract do
       end
     end
 
-    context 'when full and element validators are supplied' do
-      where :case_name,    :value,    :success?, :result_contents do
-        'non-array'        | 1         | false | [[[:expected_type, 'Array'], []]]
-        'invalid full'     | [1, 2]    | false | [[:too_small, []]]
-        'invalid elements' | [3, 4, 2] | false | [[[:not_gt, 2], [2]]]
-        'valid elements'   | [6, 4, 5] | true  | [6, 4, 5]
+    context 'when after validator supplied' do
+      where :case_name, :value, :success?, :result_contents do
+        'non-array'     | 4         | false | [[[:expected_type, 'Array'], []]]
+        'invalid after' | [1, 3, 2] | false | [[:second_incorrect, []]]
+        'valid after'   | [1, 2, 3] | true  | %w[1 2 3]
       end
 
       with_them do
         subject do
           C.array(
-            full: C.rule(error: :too_small) { _1.count >= 3 },
-            each: C.typed(T::Integer) > C.gt(2)
+            each:  C.typed(T::Coercible::String),
+            after: C.rule(error: :second_incorrect) { _1[1] == '2' }
+          ).call value, [], value
+        end
+
+        it('has the expected result type') { expect(subject.success?).to eq success? }
+
+        it 'has the expected result content' do
+          expect(subject.either(ITSELF, ITSELF)).to eq result_contents
+        end
+      end
+    end
+
+    context 'when all validators are supplied' do
+      where :case_name,    :value,   :success?, :result_contents do
+        'non-array'        | 1        | false | [[[:expected_type, 'Array'], []]]
+        'invalid before'   | [2, 1]   | false | [[:first_incorrect, []]]
+        'invalid elements' | [1.0, 2] | false | [[[:expected_type, 'BigDecimal'], [0]]]
+        'invalid after'    | [1, 1]   | false | [[:second_incorrect, []]]
+        'valid elements'   | [1, 2]   | true  | [BigDecimal(1), BigDecimal(2)]
+      end
+
+      with_them do
+        subject do
+          C.array(
+            before: C.rule(error: :first_incorrect) { _1[0].to_i == 1 },
+            each:   C.typed(T::Coercible::Decimal),
+            after:  C.rule(error: :second_incorrect) { _1[1] == BigDecimal(2) }
           ).call value, [], value
         end
 

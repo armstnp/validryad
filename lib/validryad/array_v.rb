@@ -9,19 +9,18 @@ module Validryad
     include Combinators
     include Dry::Monads[:result, :do]
 
-    def initialize(full: Pass.instance, each: Pass.instance)
-      @full_validator    = full
+    def initialize(before: Pass.instance, each: Pass.instance, after: Pass.instance)
+      @before_validator  = before
       @element_validator = each
+      @after_validator   = after
     end
 
     def call(value, path, context)
       yield affirm_is_array value, path
 
-      full_value = yield full_validator.call value, path, context
-
-      element_results = validate_elements full_value, path, context
-
-      gather_results element_results
+      before_value = yield before_validator.call value, path, context
+      each_value   = yield validate_elements before_value, path, context
+      after_validator.call each_value, path, context
     end
 
     private
@@ -31,9 +30,11 @@ module Validryad
     end
 
     def validate_elements(value, path, context)
-      value.each_with_index.map do |element, index|
+      validated_elements = value.each_with_index.map do |element, index|
         element_validator.call element, path + [index], context
       end
+
+      gather_results validated_elements
     end
 
     def gather_results(results)
@@ -48,6 +49,6 @@ module Validryad
       Success results.map(&:value!)
     end
 
-    attr_reader :full_validator, :element_validator
+    attr_reader :before_validator, :element_validator, :after_validator
   end
 end
