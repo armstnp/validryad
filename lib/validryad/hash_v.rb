@@ -15,11 +15,18 @@ module Validryad
       reject: ->(k, _v, path) { [k, Dry::Monads.Failure([[[:invalid_key, k], path]])] }
     }.freeze
 
-    def initialize(full: Pass.instance, mandatory: {}, optional: {}, other_keys: :keep)
-      @full_validator    = full
+    def initialize(
+      before:     Pass.instance,
+      mandatory:  {},
+      optional:   {},
+      other_keys: :keep,
+      after:      Pass.instance
+    )
+      @before_validator  = before
       @key_validators    = mandatory.merge optional
       @mandatory_keys    = mandatory.keys
       @other_key_handler = OTHER_KEY_HANDLERS[other_keys]
+      @after_validator   = after
 
       raise Validryad::Error, "Invalid other-key handler #{other_keys}" unless other_key_handler
     end
@@ -27,13 +34,9 @@ module Validryad
     def call(value, path, context)
       yield affirm_is_hash value, path
 
-      full_value = yield full_validator.call value, path, context
-
-      element_results     = validate_elements full_value, path, context
-      missing_key_results = validate_mandatory_present full_value, path
-      all_results         = element_results + missing_key_results
-
-      gather_results all_results
+      before_value   = yield before_validator.call value, path, context
+      elements_value = yield validate_elements before_value, path, context
+      after_validator.call elements_value, path, context
     end
 
     private
@@ -43,6 +46,14 @@ module Validryad
     end
 
     def validate_elements(value, path, context)
+      element_results     = validate_kvs value, path, context
+      missing_key_results = validate_mandatory_present value, path
+      all_results         = element_results + missing_key_results
+
+      gather_results all_results
+    end
+
+    def validate_kvs(value, path, context)
       value.map do |key, val|
         if validated_key? key
           validate_kv key, val, path, context
@@ -83,6 +94,7 @@ module Validryad
       Success(results.map { |(k, v)| [k, v.value!] }.to_h)
     end
 
-    attr_reader :full_validator, :key_validators, :mandatory_keys, :other_key_handler
+    attr_reader :before_validator, :key_validators, :mandatory_keys, :other_key_handler,
+                :after_validator
   end
 end

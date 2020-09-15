@@ -32,8 +32,8 @@ module Validryad
     end
 
     # Validate a value is a hash with specified keys.
-    # @param [#call(val, path, context)] full: A validator to apply to the hash as a whole (e.g.
-    # count)
+    # @param [#call(val, path, context)] before: A validator to apply to the hash as a whole (e.g.
+    # count) before the individual key validators +mandatory+ and +optional+
     # @param [Hash<Object, #call(val, path, context)>] mandatory: A map of mandatory keys to
     # validators against those keys
     # @param [Hash<Object, #call(val, path, context)>] optional: A map of optional keys to
@@ -41,8 +41,22 @@ module Validryad
     # @param [:keep|:trim|:reject] other_keys: A mode switch that determines whether unspecified
     # keys are kept without validation (+:keep+), trimmed away from the returned value (+:trim+), or
     # rejected with a failure (+:reject+).
-    def hash(full: Pass.instance, mandatory: {}, optional: {}, other_keys: :keep)
-      HashV.new full: full, mandatory: mandatory, optional: optional, other_keys: other_keys
+    # @param [#call(val, path, context)] after: A validator to apply to the hash as a whole (e.g.
+    # count) after the individual key validators +mandatory+ and +optional+
+    def hash(
+      before: Pass.instance,
+      mandatory: {},
+      optional: {},
+      other_keys: :keep,
+      after: Pass.instance
+    )
+      HashV.new(
+        before: before,
+        mandatory: mandatory,
+        optional: optional,
+        other_keys: other_keys,
+        after: after
+      )
     end
 
     # Validate a value is a fixed-size tuple.
