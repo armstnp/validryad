@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'validryad/context'
 require 'validryad/error'
 require 'dry/monads'
 
@@ -33,8 +34,8 @@ module Validryad
       @right = right
     end
 
-    def call(value, path, context)
-      case [left.call(value, path, context), right.call(value, path, context)]
+    def call(value, context = Context.new(value))
+      case [left.call(value, context), right.call(value, context)]
       in [Success, Success => success]
         success
       in [Success, Failure => failure]
@@ -65,9 +66,9 @@ module Validryad
       @right = right
     end
 
-    def call(value, path, context)
-      lvalue = yield left.call value, path, context
-      right.call lvalue, path, context
+    def call(value, context = Context.new(value))
+      lvalue = yield left.call value, context
+      right.call lvalue, context
     end
 
     private
@@ -88,10 +89,10 @@ module Validryad
       @right = right
     end
 
-    def call(value, path, context)
+    def call(value, context = Context.new(value))
       left
-        .call(value, path, context)
-        .either ->(v) { right.call v, path, context }, ->(_) { Success value }
+        .call(value, context)
+        .either ->(v) { right.call v, context }, ->(_) { Success value }
     end
 
     private

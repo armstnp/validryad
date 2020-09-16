@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'validryad/context'
 require 'validryad/combinators'
 require 'dry/monads'
 
@@ -12,8 +13,8 @@ module Validryad
       @type = type
     end
 
-    def call(value, path, _context)
-      type.try(value) { Failure [[[:expected_type, type.name], path]] }.to_monad
+    def call(value, context = Context.new(value))
+      type.try(value) { context.fail [:expected_type, type.name] }.to_monad
     end
 
     private

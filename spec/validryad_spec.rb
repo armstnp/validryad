@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'validryad/context'
 require 'dry/monads'
 
 RSpec.describe Validryad do
@@ -27,7 +28,7 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.typed(type).call value, [], value }
+        subject { C.typed(type).call value }
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -50,7 +51,7 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.typed(type).call value, [], value }
+        subject { C.typed(type).call value }
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -70,7 +71,7 @@ RSpec.describe Validryad::Contract do
     end
 
     with_them do
-      subject { C.default(default).call value, [], value }
+      subject { C.default(default).call value }
 
       it('is a success') { is_expected.to be_success }
 
@@ -91,7 +92,7 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.tuple.call value, [], value }
+        subject { C.tuple.call value }
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -111,7 +112,7 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.tuple(C.eq(1)).call value, [], value }
+        subject { C.tuple(C.eq(1)).call value }
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -134,7 +135,7 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.tuple(C.eq(1), C.eq(:sym)).call value, [], value }
+        subject { C.tuple(C.eq(1), C.eq(:sym)).call value }
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -153,7 +154,7 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.array.call value, [], value }
+        subject { C.array.call value }
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -175,7 +176,12 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.array(each: C.typed(T::Integer) > C.gt(2)).call value, path, value }
+        subject do
+          C.array(each: C.typed(T::Integer) > C.gt(2)).call(
+            value,
+            Validryad::Context.new(value, path)
+          )
+        end
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -197,7 +203,7 @@ RSpec.describe Validryad::Contract do
           C.array(
             each:  C.typed(T::Coercible::String),
             after: C.rule(error: :second_incorrect) { _1[1] == '2' }
-          ).call value, [], value
+          ).call value
         end
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
@@ -223,7 +229,7 @@ RSpec.describe Validryad::Contract do
             before: C.rule(error: :first_incorrect) { _1[0].to_i == 1 },
             each:   C.typed(T::Coercible::Decimal),
             after:  C.rule(error: :second_incorrect) { _1[1] == BigDecimal(2) }
-          ).call value, [], value
+          ).call value
         end
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
@@ -243,7 +249,7 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.hash.call value, [], value }
+        subject { C.hash.call value }
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -265,7 +271,12 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.hash(mandatory: { a: C.eq(1), b: C.eq(2) }).call value, path, value }
+        subject do
+          C.hash(mandatory: { a: C.eq(1), b: C.eq(2) }).call(
+            value,
+            Validryad::Context.new(value, path)
+          )
+        end
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -286,7 +297,7 @@ RSpec.describe Validryad::Contract do
       end
 
       with_them do
-        subject { C.hash(optional: { a: C.eq(1) }).call value, path, value }
+        subject { C.hash(optional: { a: C.eq(1) }).call value, Validryad::Context.new(value, path) }
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -308,7 +319,7 @@ RSpec.describe Validryad::Contract do
           C.hash(
             before:    C.rule(error: :invalid_a) { _1[:a] == 1 },
             mandatory: { a: C.typed(T::Coercible::String) }
-          ).call value, [], value
+          ).call value
         end
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
@@ -331,7 +342,7 @@ RSpec.describe Validryad::Contract do
           C.hash(
             mandatory: { a: C.typed(T::Coercible::String) },
             after:     C.rule(error: :invalid_a) { _1[:a] == '1' }
-          ).call value, [], value
+          ).call value
         end
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
@@ -362,7 +373,7 @@ RSpec.describe Validryad::Contract do
             mandatory: { a: C.typed(T::Coercible::Decimal) },
             optional:  { b: C.typed(T::Coercible::Decimal) },
             after:     C.rule(error: :invalid_after) { !_1.key?(:b) || _1[:b] == BigDecimal(2) }
-          ).call value, path, value
+          ).call value, Validryad::Context.new(value, path)
         end
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
@@ -386,7 +397,7 @@ RSpec.describe Validryad::Contract do
             mandatory:  { a: C.eq(1) },
             optional:   { b: C.eq(2) },
             other_keys: other_key_mode
-          ).call({ a: 1, b: 2, c: 3 }, [], { a: 1, b: 2, c: 3 })
+          ).call({ a: 1, b: 2, c: 3 })
         end
 
         it('has the expected result type') { expect(subject.success?).to eq success? }
@@ -411,7 +422,7 @@ RSpec.describe Validryad::Contract do
     end
 
     with_them do
-      subject { (C.rule(error: :not_even) { _1.even? } & C.gt(10)).call value, [], value }
+      subject { (C.rule(error: :not_even) { _1.even? } & C.gt(10)).call value }
 
       it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -421,13 +432,13 @@ RSpec.describe Validryad::Contract do
     end
 
     it 'propagates the same value to left and right validators' do
-      result = (C.typed(T::Coercible::String) & C.gt(5)).call 6, [], 6
+      result = (C.typed(T::Coercible::String) & C.gt(5)).call 6
       expect(result).to be_success
       expect(result.value!).to eq 6
     end
 
     it 'succeeds with the right value' do
-      result = (C.gt(5) & C.typed(T::Coercible::String)).call 6, [], 6
+      result = (C.gt(5) & C.typed(T::Coercible::String)).call 6
       expect(result).to be_success
       expect(result.value!).to eq '6'
     end
@@ -442,7 +453,7 @@ RSpec.describe Validryad::Contract do
     end
 
     with_them do
-      subject { (C.rule(error: :not_even) { _1.even? } > C.gt(10)).call value, [], value }
+      subject { (C.rule(error: :not_even) { _1.even? } > C.gt(10)).call value }
 
       it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -452,13 +463,13 @@ RSpec.describe Validryad::Contract do
     end
 
     it 'propagates left success value to the right validator' do
-      result = (C.typed(T::Coercible::Integer) > C.gt(10)).call '6', [], '6'
+      result = (C.typed(T::Coercible::Integer) > C.gt(10)).call '6'
       expect(result).to be_failure
       expect(result.failure).to eq [[[:not_gt, 10], []]]
     end
 
     it 'succeeds with the right value' do
-      result = (C.gt(5) > C.typed(T::Coercible::String)).call 6, [], 6
+      result = (C.gt(5) > C.typed(T::Coercible::String)).call 6
       expect(result).to be_success
       expect(result.value!).to eq '6'
     end
@@ -472,7 +483,7 @@ RSpec.describe Validryad::Contract do
     end
 
     with_them do
-      subject { (C.typed(T::Coercible::Integer) >= C.eq(10)).call value, [], value }
+      subject { (C.typed(T::Coercible::Integer) >= C.eq(10)).call value }
 
       it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -488,14 +499,14 @@ RSpec.describe Validryad::Contract do
       '0-arity true'  | -> { true }                                            | true
       '1-arity false' | -> { _1.even? }                                        | false
       '1-arity true'  | -> { _1.odd? }                                         | true
-      '2-arity false' | -> { _1.odd? && _2.include?(:htap) }                   | false
-      '2-arity true'  | -> { _1.odd? && _2.include?(:path) }                   | true
-      '3-arity false' | -> { _1.odd? && _2.include?(:path) && _3.key?(:htap) } | false
-      '3-arity true'  | -> { _1.odd? && _2.include?(:path) && _3.key?(:path) } | true
+      '2-arity false' | -> { _1.odd? && _2.sibling(:sibling).value == 1 }      | false
+      '2-arity true'  | -> { _1.odd? && _2.sibling(:sibling).value == 2 }      | true
     end
 
     with_them do
-      subject { C.rule(error: :fail, &predicate).call 1, [:path], { path: 1 } }
+      subject do
+        C.rule(error: :fail, &predicate).call 1, Validryad::Context.new({ path: 1, sibling: 2 }, [:path])
+      end
 
       it('has the expected result type') { expect(subject.success?).to eq success? }
 
@@ -505,14 +516,14 @@ RSpec.describe Validryad::Contract do
       end
     end
 
-    it 'rejects blocks of arity > 3' do
-      expect { C.rule(error: 0) { |_a, _b, _c, _d| true }.call true, [], true }.to(
+    it 'rejects blocks of arity > 2' do
+      expect { C.rule(error: 0) { |_a, _b, _c| true }.call true }.to(
         raise_error(Validryad::Error)
       )
     end
 
     it 'supplies a default error' do
-      expect(C.rule { _1 == 10 }.call(1, [], 1)).to eq(
+      expect(C.rule { _1 == 10 }.call(1)).to eq(
         Failure([[:rule_failed, []]])
       )
     end
@@ -549,7 +560,7 @@ RSpec.describe Validryad::Contract do
     end
 
     with_them do
-      subject { predicate.call value, [], value }
+      subject { predicate.call value }
 
       it('has the expected result type') { expect(subject.success?).to eq success? }
 

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'validryad/context'
 require 'validryad/constructors'
 
 module Validryad
@@ -11,7 +12,7 @@ module Validryad
     end
 
     def self.call(value)
-      @validation.call value, [], value
+      @validation.call value
     end
   end
 end

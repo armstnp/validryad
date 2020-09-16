@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'validryad/context'
 require 'validryad/combinators'
 require 'dry/monads'
 
@@ -12,35 +13,35 @@ module Validryad
       @element_validators = elements
     end
 
-    def call(value, path, context)
-      yield affirm_is_array value, path
-      yield validate_size value, path
+    def call(value, context = Context.new(value))
+      yield affirm_is_array value, context
+      yield validate_size value, context
 
-      element_results = validate_elements value, path, context
+      element_results = validate_elements value, context
 
       gather_results element_results
     end
 
     private
 
-    def affirm_is_array(value, path)
-      value.is_a?(Array) ? Success(value) : Failure([[[:expected_type, 'Array'], path]])
+    def affirm_is_array(value, context)
+      value.is_a?(Array) ? Success(value) : context.fail([:expected_type, 'Array'])
     end
 
-    def validate_size(value, path)
+    def validate_size(value, context)
       expected_size = element_validators.size
       if value.size == expected_size
-        Success(value)
+        Success value
       else
-        Failure([[[:expected_size, expected_size], path]])
+        context.fail [:expected_size, expected_size]
       end
     end
 
-    def validate_elements(value, path, context)
+    def validate_elements(value, context)
       element_validators
         .zip(value)
         .each_with_index
-        .map { |(validator, element), index| validator.call element, path + [index], context }
+        .map { |(validator, element), index| validator.call element, context.child(index) }
     end
 
     def gather_results(results)

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'validryad/context'
 require 'validryad/combinators'
 require 'validryad/pass'
 require 'dry/monads'
@@ -15,23 +16,23 @@ module Validryad
       @after_validator   = after
     end
 
-    def call(value, path, context)
-      yield affirm_is_array value, path
+    def call(value, context = Context.new(value))
+      yield affirm_is_array value, context
 
-      before_value = yield before_validator.call value, path, context
-      each_value   = yield validate_elements before_value, path, context
-      after_validator.call each_value, path, context
+      before_value = yield before_validator.call value, context
+      each_value   = yield validate_elements before_value, context
+      after_validator.call each_value, context
     end
 
     private
 
-    def affirm_is_array(value, path)
-      value.is_a?(Array) ? Success(value) : Failure([[[:expected_type, 'Array'], path]])
+    def affirm_is_array(value, context)
+      value.is_a?(Array) ? Success(value) : context.fail([:expected_type, 'Array'])
     end
 
-    def validate_elements(value, path, context)
+    def validate_elements(value, context)
       validated_elements = value.each_with_index.map do |element, index|
-        element_validator.call element, path + [index], context
+        element_validator.call element, context.child(index)
       end
 
       gather_results validated_elements
