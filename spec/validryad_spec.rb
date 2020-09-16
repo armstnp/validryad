@@ -478,12 +478,12 @@ RSpec.describe Validryad::Contract do
   describe :implies do
     where :case_name,             :value, :success?, :result_contents do
       'left invalid'              | 'x'  | true  | 'x'
-      'left valid, right invalid' | '1'  | false | [[[:not_eq, 10], []]]
-      'left+right valid'          | '10' | true  | 10
+      'left valid, right invalid' | '1'  | false | [[[:not_eq, '10'], []]]
+      'left+right valid'          | '10' | true  | '10'
     end
 
     with_them do
-      subject { (C.typed(T::Coercible::Integer) >= C.eq(10)).call value }
+      subject { (C.typed(T::Coercible::Integer) >= C.eq('10')).call value }
 
       it('has the expected result type') { expect(subject.success?).to eq success? }
 

@@ -78,8 +78,11 @@ module Validryad
 
   # A validation that uses its left validation as a gate; if it fails, the input value is output as
   # a success, effectively skipping the validation. But if it succeeds, the right validation is run
-  # on its output, and the result is the result of this full validation. In effect, the left
+  # on the same value, and the result is the result of this full validation. In effect, the left
   # validation implies the right validation, in the logical sense.
+  #
+  # This behaves like Validryad::And and not Validryad::Then, insofar as the same value is delivered
+  # to both sides; the output of the left side is not supplied to the right.
   class Implies
     include Combinators
     include Dry::Monads[:result]
@@ -92,7 +95,7 @@ module Validryad
     def call(value, context = Context.new(value))
       left
         .call(value, context)
-        .either ->(v) { right.call v, context }, ->(_) { Success value }
+        .either ->(_) { right.call value, context }, ->(_) { Success value }
     end
 
     private
