@@ -375,9 +375,9 @@ RSpec.describe Validryad::Contract do
 
     context 'when valid other-key mode is specified' do
       where :case_name, :other_key_mode, :success?, :result_contents do
-        'keep'         | :keep    | true  | { a: 1, b: 2, c: 3 }
-        'trim'         | :trim    | true  | { a: 1, b: 2 }
-        'reject'       | :reject  | false | [[[:invalid_key, :c], []]]
+        'keep'   | :keep   | true  | { a: 1, b: 2, c: 3 }
+        'trim'   | :trim   | true  | { a: 1, b: 2 }
+        'reject' | :reject | false | [[[:invalid_key, :c], []]]
       end
 
       with_them do
@@ -461,6 +461,24 @@ RSpec.describe Validryad::Contract do
       result = (C.gt(5) > C.typed(T::Coercible::String)).call 6, [], 6
       expect(result).to be_success
       expect(result.value!).to eq '6'
+    end
+  end
+
+  describe :implies do
+    where :case_name,             :value, :success?, :result_contents do
+      'left invalid'              | 'x'  | true  | 'x'
+      'left valid, right invalid' | '1'  | false | [[[:not_eq, 10], []]]
+      'left+right valid'          | '10' | true  | 10
+    end
+
+    with_them do
+      subject { (C.typed(T::Coercible::Integer) >= C.eq(10)).call value, [], value }
+
+      it('has the expected result type') { expect(subject.success?).to eq success? }
+
+      it 'has the expected result content' do
+        expect(subject.either(ITSELF, ITSELF)).to eq result_contents
+      end
     end
   end
 

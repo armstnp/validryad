@@ -13,6 +13,10 @@ module Validryad
       Then.new self, other
     end
 
+    def >=(other)
+      Implies.new self, other
+    end
+
     # Or is very difficult to express simply: how do you respond that a value satisfied neither of two
     # conditions, when only satisfying one would suffice? [:neither err_l err_r]? [:both err_l err_r]?
     # Consider recommending that such conditions be flipped via deMorgan's law, and further consider
@@ -64,6 +68,30 @@ module Validryad
     def call(value, path, context)
       lvalue = yield left.call value, path, context
       right.call lvalue, path, context
+    end
+
+    private
+
+    attr_reader :left, :right
+  end
+
+  # A validation that uses its left validation as a gate; if it fails, the input value is output as
+  # a success, effectively skipping the validation. But if it succeeds, the right validation is run
+  # on its output, and the result is the result of this full validation. In effect, the left
+  # validation implies the right validation, in the logical sense.
+  class Implies
+    include Combinators
+    include Dry::Monads[:result]
+
+    def initialize(left, right)
+      @left  = left
+      @right = right
+    end
+
+    def call(value, path, context)
+      left
+        .call(value, path, context)
+        .either ->(v) { right.call v, path, context }, ->(_) { Success value }
     end
 
     private
