@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'validryad/context'
 require 'validryad/combinators'
 require 'validryad/error'
 require 'dry/monads'
@@ -14,14 +15,14 @@ module Validryad
       @predicate = predicate
     end
 
-    def call(value, path, context)
-      unless (0..3).include? predicate.arity
+    def call(value, context = Context.new(value))
+      unless (0..2).include? predicate.arity
         raise Error,
-              "Rule predicate must accept 0-3 params: value, path, context; given: #{predicate}"
+              "Rule predicate must accept 0-2 params: value, context; given: #{predicate}"
       end
 
-      params = [value, path, context].first predicate.arity
-      predicate.call(*params) ? Success(value) : Failure([[error, path]])
+      params = [value, context].first predicate.arity
+      predicate.call(*params) ? Success(value) : context.fail(error)
     end
 
     private

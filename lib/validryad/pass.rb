@@ -12,7 +12,7 @@ module Validryad
       @instance ||= new
     end
 
-    def call(value, _path, _context)
+    def call(value, _context = nil)
       Success value
     end
   end

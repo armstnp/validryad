@@ -12,7 +12,7 @@ module Validryad
       @default = default
     end
 
-    def call(value, _path, _context)
+    def call(value, _context = nil)
       Success(value.nil? ? @default : value)
     end
   end

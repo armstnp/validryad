@@ -70,13 +70,11 @@ module Validryad
     # following forms:
     #   ||
     #   |value|
-    #   |value, path|
-    #   |value, path, context|
+    #   |value, context|
     #
     # @param [Object] error: The error code to use when the value fails the rule.
     # @yieldparam [Object] value The value to be validated
-    # @yieldparam [Array<Object>] path The path through the context at which value is located
-    # @yieldparam [Object] context The original context in which value was found
+    # @yieldparam [Validryad::Context] context The original context in which value was found
     # @yieldreturn [Boolean] Whether the value passes the rule.
     def rule(error: :rule_failed, &predicate)
       Rule.new error: error, predicate: predicate

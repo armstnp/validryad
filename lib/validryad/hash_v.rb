@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'validryad/context'
 require 'validryad/combinators'
 require 'validryad/pass'
 require 'dry/monads'
@@ -10,9 +11,9 @@ module Validryad
     include Dry::Monads[:result, :do]
 
     OTHER_KEY_HANDLERS = {
-      keep:   ->(k, v, _path) { [k, Dry::Monads.Success(v)] },
-      trim:   ->(_k, _v, _path) { nil },
-      reject: ->(k, _v, path) { [k, Dry::Monads.Failure([[[:invalid_key, k], path]])] }
+      keep:   ->(k, v, _ctx) { [k, Dry::Monads.Success(v)] },
+      trim:   ->(_k, _v, _ctx) { nil },
+      reject: ->(k, _v, ctx) { [k, ctx.fail([:invalid_key, k])] }
     }.freeze
 
     def initialize(
@@ -31,34 +32,34 @@ module Validryad
       raise Validryad::Error, "Invalid other-key handler #{other_keys}" unless other_key_handler
     end
 
-    def call(value, path, context)
-      yield affirm_is_hash value, path
+    def call(value, context = Context.new(value))
+      yield affirm_is_hash value, context
 
-      before_value   = yield before_validator.call value, path, context
-      elements_value = yield validate_elements before_value, path, context
-      after_validator.call elements_value, path, context
+      before_value   = yield before_validator.call value, context
+      elements_value = yield validate_elements before_value, context
+      after_validator.call elements_value, context
     end
 
     private
 
-    def affirm_is_hash(value, path)
-      value.is_a?(Hash) ? Success(value) : Failure([[[:expected_type, 'Hash'], path]])
+    def affirm_is_hash(value, context)
+      value.is_a?(Hash) ? Success(value) : context.fail([:expected_type, 'Hash'])
     end
 
-    def validate_elements(value, path, context)
-      element_results     = validate_kvs value, path, context
-      missing_key_results = validate_mandatory_present value, path
+    def validate_elements(value, context)
+      element_results     = validate_kvs value, context
+      missing_key_results = validate_mandatory_present value, context
       all_results         = element_results + missing_key_results
 
       gather_results all_results
     end
 
-    def validate_kvs(value, path, context)
+    def validate_kvs(value, context)
       value.map do |key, val|
         if validated_key? key
-          validate_kv key, val, path, context
+          validate_kv key, val, context
         else
-          other_key_handler.call key, val, path
+          other_key_handler.call key, val, context
         end
       end.compact
     end
@@ -67,14 +68,14 @@ module Validryad
       key_validators.key? key
     end
 
-    def validate_kv(key, value, path, context)
-      [key, key_validators[key].call(value, path + [key], context)]
+    def validate_kv(key, value, context)
+      [key, key_validators[key].call(value, context.child(key))]
     end
 
-    def validate_mandatory_present(value, path)
+    def validate_mandatory_present(value, context)
       mandatory_keys
         .reject { |key| value.key? key }
-        .map { |key| [key, Failure([[[:missing_key, key], path]])] }
+        .map { |key| [key, context.fail([:missing_key, key])] }
     end
 
     def gather_results(results)
