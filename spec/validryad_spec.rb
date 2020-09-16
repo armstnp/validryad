@@ -510,6 +510,12 @@ RSpec.describe Validryad::Contract do
         raise_error(Validryad::Error)
       )
     end
+
+    it 'supplies a default error' do
+      expect(C.rule { _1 == 10 }.call(1, [], 1)).to eq(
+        Failure([[:rule_failed, []]])
+      )
+    end
   end
 
   describe 'prefab predicates' do

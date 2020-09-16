@@ -78,7 +78,7 @@ module Validryad
     # @yieldparam [Array<Object>] path The path through the context at which value is located
     # @yieldparam [Object] context The original context in which value was found
     # @yieldreturn [Boolean] Whether the value passes the rule.
-    def rule(error:, &predicate)
+    def rule(error: :rule_failed, &predicate)
       Rule.new error: error, predicate: predicate
     end
 

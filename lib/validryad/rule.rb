@@ -9,7 +9,7 @@ module Validryad
     include Combinators
     include Dry::Monads[:result]
 
-    def initialize(error:, predicate:)
+    def initialize(error: :rule_failed, predicate:)
       @error     = error
       @predicate = predicate
     end
