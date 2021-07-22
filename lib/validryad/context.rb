@@ -13,7 +13,13 @@ module Validryad
     end
 
     def value
-      root.dig(*path)
+      return @root if path.empty?
+
+      @root.dig(*path)
+    end
+
+    def root
+      move []
     end
 
     def parent
@@ -37,9 +43,9 @@ module Validryad
     private
 
     def move(new_path)
-      Context.new root, new_path
+      Context.new @root, new_path
     end
 
-    attr_reader :path, :root
+    attr_reader :path
   end
 end

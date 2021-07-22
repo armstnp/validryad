@@ -7,6 +7,10 @@ RSpec.describe Validryad::Context do
     expect { Validryad::Context.new(0).parent }.to raise_error Validryad::Error
   end
 
+  it 'moves to the root' do
+    expect(Validryad::Context.new({ a: { b: 2 } }, %i[a b]).root.value).to eq({ a: { b: 2 } })
+  end
+
   it 'moves to the parent' do
     expect(Validryad::Context.new({ a: { b: 2 } }, %i[a b]).parent.value).to eq({ b: 2 })
   end
